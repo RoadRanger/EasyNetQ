@@ -1,73 +1,81 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace EasyNetQ
 {
-    using System.Collections.Immutable;
-    using System.Linq;
-
     /// <summary>
     /// An internal pub-sub bus to distribute events within EasyNetQ
     /// </summary>
     public interface IEventBus
     {
         void Publish<TEvent>(TEvent @event);
-
         CancelSubscription Subscribe<TEvent>(Action<TEvent> eventHandler);
     }
 
     public class EventBus : IEventBus
     {
-        private readonly ConcurrentDictionary<Type, IImmutableSet<object>> subscriptions = 
-            new ConcurrentDictionary<Type, IImmutableSet<object>>();
+        private class Handlers
+        {
+            private readonly object internalHandlersLock = new object();
+            private readonly List<object> internalHandlers = new List<object>(); 
+
+            public void Add(object handler)
+            {
+                lock (internalHandlersLock)
+                    internalHandlers.Add(handler);
+            }
+
+            public void Remove(object handler)
+            {
+                lock (internalHandlersLock)
+                    internalHandlers.Remove(handler);
+            }
+
+            public IEnumerable<object> AsEnumerable()
+            {
+                lock (internalHandlersLock)
+                    return internalHandlers.ToArray();
+            }
+        }
+
+        private readonly ConcurrentDictionary<Type, Handlers> subscriptions = new ConcurrentDictionary<Type, Handlers>();
+        private readonly object subscriptionLock = new object();
 
         public void Publish<TEvent>(TEvent @event)
         {
-            if (!subscriptions.ContainsKey(typeof (TEvent))) return;
-
-            // Create a local copy of handlers to avoid any interference from
-            // handler subscribing to events and modifying collection.
-            var handlers = new List<object>(subscriptions[typeof(TEvent)]);
-            foreach (var eventHandler in handlers)
-            {
-                ((Action<TEvent>) eventHandler)(@event);
-            }
+            Handlers handlers;
+            if (!subscriptions.TryGetValue(typeof (TEvent), out handlers))
+                return;
+            foreach (var handler in handlers.AsEnumerable())
+                ((Action<TEvent>) handler)(@event);
         }
 
         public CancelSubscription Subscribe<TEvent>(Action<TEvent> eventHandler)
         {
-            subscriptions.AddOrUpdate(
-                typeof(TEvent),
-                t => ImmutableHashSet.Create<object>(eventHandler),
-                (t, l) => l.Add(eventHandler));
+            AddSubscription(eventHandler);
+            return GetCancelSubscriptionDelegate(eventHandler);
+        }
 
+        private void AddSubscription<TEvent>(Action<TEvent> handler)
+        {
+            var type = typeof (TEvent);
+            Handlers handlers;
+            if (!subscriptions.TryGetValue(type, out handlers))
+                lock (subscriptionLock)
+                    if (!subscriptions.TryGetValue(type, out handlers))
+                        subscriptions[type] = handlers = new Handlers();
+            handlers.Add(handler);
+        }
+
+        private CancelSubscription GetCancelSubscriptionDelegate<TEvent>(Action<TEvent> eventHandler)
+        {
             return () =>
                 {
-                    IImmutableSet<object> comparisonValue;
-                    while (subscriptions.TryGetValue(typeof(TEvent), out comparisonValue))
-                    {
-                        if (comparisonValue.Contains(eventHandler))
-                        {
-                            IImmutableSet<object> newValue = comparisonValue.Remove(eventHandler);
-                            if (newValue.Any())
-                            {
-                                if (subscriptions.TryUpdate(typeof(TEvent), newValue, comparisonValue))
-                                {
-                                    return;
-                                }
-                            }
-                            else
-                            {
-                                if (((ICollection<KeyValuePair<Type, IImmutableSet<object>>>)subscriptions).Remove(new KeyValuePair<Type, IImmutableSet<object>>(
-                                    typeof(TEvent),
-                                    comparisonValue)))
-                                {
-                                    return;
-                                }
-                            }
-                        }
-                    }
+                    Handlers handlers;
+                    if (!subscriptions.TryGetValue(typeof (TEvent), out handlers))
+                        return;
+                    handlers.Remove(eventHandler);
                 };
         }
     }

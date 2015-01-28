@@ -10,7 +10,7 @@ namespace EasyNetQ.Consumer
 {
     public interface IInternalConsumer : IDisposable
     {
-        void StartConsuming(
+        StartConsumingStatus StartConsuming(
             IPersistentConnection connection,
             IQueue queue,
             Func<byte[], MessageProperties, MessageReceivedInfo, Task> onMessage,
@@ -61,7 +61,7 @@ namespace EasyNetQ.Consumer
             this.eventBus = eventBus;
         }
 
-        public void StartConsuming(
+        public StartConsumingStatus StartConsuming(
             IPersistentConnection connection,
             IQueue queue,
             Func<byte[], MessageProperties, MessageReceivedInfo, Task> onMessage,
@@ -91,17 +91,21 @@ namespace EasyNetQ.Consumer
                     queue.Name,         // queue
                     false,              // noAck
                     consumerTag,        // consumerTag
+                    true,
+                    configuration.IsExclusive,
                     arguments,          // arguments
                     this);              // consumer
 
                 logger.InfoWrite("Declared Consumer. queue='{0}', consumer tag='{1}' prefetchcount={2} priority={3} x-cancel-on-ha-failover={4}",
-                                  queue.Name, consumerTag, connectionConfiguration.PrefetchCount, configuration.Priority, configuration.CancelOnHaFailover);
+                                  queue.Name, consumerTag, configuration.PrefetchCount, configuration.Priority, configuration.CancelOnHaFailover);
             }
             catch (Exception exception)
             {
-                logger.InfoWrite("Consume failed. queue='{0}', consumer tag='{1}', message='{2}'",
+                logger.ErrorWrite("Consume failed. queue='{0}', consumer tag='{1}', message='{2}'",
                                  queue.Name, consumerTag, exception.Message);
+                return StartConsumingStatus.Failed;
             }
+            return StartConsumingStatus.Succeed;
         }
 
         /// <summary>

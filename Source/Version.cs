@@ -2,10 +2,26 @@
 using System.Reflection;
 
 // EasyNetQ version number: <major>.<minor>.<non-breaking-feature>.<build>
-[assembly: AssemblyVersion("0.37.2.0")]
+[assembly: AssemblyVersion("0.40.3.0")]
 [assembly: CLSCompliant(true)]
 
 // Note: until version 1.0 expect breaking changes on 0.X versions.
+
+// 0.40.4.0 Bug fix of Rpc
+// 0.40.3.0 Upgrade to RabbitMQ.Client 3.4.3
+// 0.40.2.0 ReflectionHelpers improvement
+// 0.40.1.0 Fix concurrent bugs in DefaultServiceProvider
+// 0.40.0.0 Exclusive Consumer
+// 0.39.6.0 Fix enable recreating of exchangeTask if it is faulted
+// 0.39.5.0 Fix concurrent bugs in EventBus
+// 0.39.4.0 ConsumerDispatcher's dispatching thread shall not die due to single action failure.
+// 0.39.3.0 SendAsync should return Task
+// 0.39.2.0 Removed Immutable Packages and replaced IEventBus.cs with previous version to prevent cs1685 compiler warnings
+// 0.39.1.0 Fix multiple queue's creation. Bug fix
+// 0.39.0.0 Added SendAsync
+// 0.38.2.0 RandomHostSelectionStrategy is default hosts selection strategy
+// 0.38.1.0 Configuration of rpc timeout  
+// 0.38.0.0 ILMerging to remove the potentially conflicting dependency on System.Collections.Immutable.Net40 from the NuGet
 // 0.37.3.0 Remove POCO interfaces IConnectionConfiguration and IHostConfiguration
 // 0.37.2.0 Upgrade to RabbitMQ.Client 3.4.0
 // 0.37.1.0 AutoSubscriber Subscribe and SubscribeAsync support loading consumers from an array of types

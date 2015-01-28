@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using EasyNetQ.Consumer;
 using EasyNetQ.FluentConfiguration;
+using EasyNetQ.Producer;
 
 namespace EasyNetQ
 {
@@ -154,6 +155,21 @@ namespace EasyNetQ
             where TResponse : class;
 
         /// <summary>
+        /// Responds to an RPC request.
+        /// </summary>
+        /// <typeparam name="TRequest">The request type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="responder">
+        /// A function to run when the request is received. It should return the response.
+        /// </param>
+        /// <param name="configure">
+        /// A function for responder configuration
+        /// </param>
+        IDisposable Respond<TRequest, TResponse>(Func<TRequest, TResponse> responder, Action<IResponderConfiguration> configure)
+            where TRequest : class
+            where TResponse : class;
+
+        /// <summary>
         /// Responds to an RPC request asynchronously.
         /// </summary>
         /// <typeparam name="TRequest">The request type.</typeparam>
@@ -166,12 +182,35 @@ namespace EasyNetQ
             where TResponse : class;
 
         /// <summary>
+        /// Responds to an RPC request asynchronously.
+        /// </summary>
+        /// <typeparam name="TRequest">The request type.</typeparam>
+        /// <typeparam name="TResponse">The response type</typeparam>
+        /// <param name="responder">
+        /// A function to run when the request is received.
+        /// </param>
+        /// <param name="configure">
+        /// A function for responder configuration
+        /// </param>
+        IDisposable RespondAsync<TRequest, TResponse>(Func<TRequest, Task<TResponse>> responder, Action<IResponderConfiguration> configure)
+            where TRequest : class
+            where TResponse : class;
+
+        /// <summary>
         /// Send a message directly to a queue
         /// </summary>
         /// <typeparam name="T">The type of message to send</typeparam>
         /// <param name="queue">The queue to send to</param>
         /// <param name="message">The message</param>
         void Send<T>(string queue, T message) where T : class;
+
+        /// <summary>
+        /// Send a message directly to a queue
+        /// </summary>
+        /// <typeparam name="T">The type of message to send</typeparam>
+        /// <param name="queue">The queue to send to</param>
+        /// <param name="message">The message</param>
+        Task SendAsync<T>(string queue, T message) where T : class;
 
         /// <summary>
         /// Receive messages from a queue.

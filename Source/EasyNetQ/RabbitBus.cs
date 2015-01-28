@@ -149,9 +149,14 @@ namespace EasyNetQ
             return advancedBus.Consume<T>(
                 queue,
                 (message, messageReceivedInfo) => onMessage(message.Body),
-                x => x.WithPriority(configuration.Priority)
-                      .WithCancelOnHaFailover(configuration.CancelOnHaFailover)
-                      .WithPrefetchCount(configuration.PrefetchCount));
+                x =>
+                    {
+                        x.WithPriority(configuration.Priority)
+                         .WithCancelOnHaFailover(configuration.CancelOnHaFailover)
+                         .WithPrefetchCount(configuration.PrefetchCount);
+                        if (configuration.IsExclusive)
+                            x.AsExclusive();
+                    });
         }
 
         public virtual TResponse Request<TRequest, TResponse>(TRequest request)
@@ -186,19 +191,39 @@ namespace EasyNetQ
             return RespondAsync(taskResponder);
         }
 
+        public IDisposable Respond<TRequest, TResponse>(Func<TRequest, TResponse> responder, Action<IResponderConfiguration> configure) where TRequest : class where TResponse : class
+        {
+            Func<TRequest, Task<TResponse>> taskResponder =
+                request => Task<TResponse>.Factory.StartNew(_ => responder(request), null);
+
+            return RespondAsync(taskResponder, configure);
+        }
+
         public virtual IDisposable RespondAsync<TRequest, TResponse>(Func<TRequest, Task<TResponse>> responder)
             where TRequest : class
             where TResponse : class
         {
-            Preconditions.CheckNotNull(responder, "responder");
+            return RespondAsync(responder, c => { });
+        }
 
-            return rpc.Respond(responder);
+        public IDisposable RespondAsync<TRequest, TResponse>(Func<TRequest, Task<TResponse>> responder, Action<IResponderConfiguration> configure) where TRequest : class where TResponse : class
+        {
+            Preconditions.CheckNotNull(responder, "responder");
+            Preconditions.CheckNotNull(configure, "configure");
+
+            return rpc.Respond(responder, configure);
         }
 
         public virtual void Send<T>(string queue, T message)
             where T : class
         {
             sendReceive.Send(queue, message);
+        }
+
+        public virtual Task SendAsync<T>(string queue, T message)
+            where T : class
+        {
+            return sendReceive.SendAsync(queue, message);
         }
 
         public virtual IDisposable Receive<T>(string queue, Action<T> onMessage)

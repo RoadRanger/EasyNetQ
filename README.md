@@ -1,8 +1,8 @@
-![EasyNetQ Logo](https://raw.github.com/wiki/mikehadlow/EasyNetQ/images/logo_design_150.png)
+![EasyNetQ Logo](https://github.com/EasyNetQ/EasyNetQ/wiki/images/logo_design_150.png)
 
 A Nice .NET API for RabbitMQ
 
-Development is sponsored by travel industry experts [15below](http://15below.com/)
+Initial development was sponsored by travel industry experts [15below](http://15below.com/)
 
 * **[Homepage](http://easynetq.com)**
 * **[Documentation](https://github.com/mikehadlow/EasyNetQ/wiki/Introduction)**

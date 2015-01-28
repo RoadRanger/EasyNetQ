@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 namespace EasyNetQ
 {
@@ -14,16 +13,15 @@ namespace EasyNetQ
 
         public MessageDeliveryModeStrategy(ConnectionConfiguration connectionConfiguration)
         {
+            Preconditions.CheckNotNull(connectionConfiguration, "connectionConfiguration");
             this.connectionConfiguration = connectionConfiguration;
         }
 
         public bool IsPersistent(Type messageType)
         {
             Preconditions.CheckNotNull(messageType, "messageType");
-            var deliveryModeAttribute = messageType.GetAttributes<DeliveryModeAttribute>().FirstOrDefault();
-            if (deliveryModeAttribute != null)
-                return deliveryModeAttribute.IsPersistent;
-            return connectionConfiguration.PersistentMessages;
+            var deliveryModeAttribute = messageType.GetAttribute<DeliveryModeAttribute>();
+            return deliveryModeAttribute != null ? deliveryModeAttribute.IsPersistent : connectionConfiguration.PersistentMessages;
         }
     }
 }
